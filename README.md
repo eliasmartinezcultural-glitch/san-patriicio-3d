@@ -63,6 +63,12 @@ Para publicarlo, entrá en **Settings → Pages**, elegí **Deploy from a branch
 
 ## Fuentes y atribución
 
+- Catálogo inicial de hitos y nivel de confianza: [data/hitos-iniciales.json](data/hitos-iniciales.json).
+- Municipalidad (coordenada publicada): https://mapcarta.com/es/W218470639
+- Hospital de Área Dra. Alicia Cruz (coordenada publicada): https://mapcarta.com/es/W922791579
+- Plaza de los Derechos de las Infancias (coordenada publicada): https://mapcarta.com/W120609368
+- Ordenanza municipal 1203/20 sobre la denominación de la plaza: https://boletinoficial.neuquen.gov.ar/BoletinDetalle?Id=23
+
 - OpenStreetMap: https://www.openstreetmap.org/
 - Overpass API: https://overpass-api.de/
 - Documentación Overpass y uso responsable: https://dev.overpass-api.de/overpass-doc/en/preface/commons.html
