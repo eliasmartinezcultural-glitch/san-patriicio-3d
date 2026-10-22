@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#15251f">
+<title>San Patricio del Chañar 3D — recorrido virtual</title>
+<style>
+:root{color-scheme:dark;--bg:#101a17;--panel:#172621;--line:#365046;--text:#f2f0e5;--muted:#b6c4b8;--accent:#d8bb7a}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text)}
+#scene{position:fixed;inset:0}canvas{display:block}
+.panel{position:fixed;z-index:2;background:rgba(17,30,25,.92);border:1px solid var(--line);backdrop-filter:blur(10px);border-radius:15px;box-shadow:0 10px 35px #0005}
+#brand{left:14px;top:14px;padding:14px 17px;max-width:min(420px,calc(100vw - 28px))}
+h1{font-size:clamp(17px,2vw,23px);margin:0 0 4px;letter-spacing:.01em}p{margin:0;color:var(--muted);font-size:13px;line-height:1.45}
+#tools{right:14px;top:14px;width:220px;padding:12px;display:grid;gap:8px}
+button{font:inherit;cursor:pointer;border:1px solid #547060;background:#263d32;color:#fff;border-radius:9px;padding:10px;text-align:left}
+button:hover,button:focus-visible{outline:2px solid var(--accent);background:#345342}
+button.primary{background:var(--accent);color:#1a211b;border-color:var(--accent);font-weight:700}
+#status{left:14px;bottom:14px;max-width:min(440px,calc(100vw - 28px));padding:12px 14px}
+#status strong{display:block;font-size:13px;margin-bottom:3px}
+#help{right:14px;bottom:14px;padding:12px 14px;width:220px}
+#crosshair{position:fixed;z-index:1;left:50%;top:50%;width:8px;height:8px;border:1px solid #fff9;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;display:none}
+#loading{position:fixed;z-index:5;inset:0;background:#101a17;display:grid;place-items:center;text-align:center;padding:25px}
+#loading .card{max-width:450px}#loading h2{font-size:24px;margin:0 0 10px}#loading p{font-size:14px}
+.hidden{display:none!important}.small{font-size:11px!important}
+@media(max-width:650px){#tools{top:auto;bottom:110px;right:10px;width:158px;padding:8px;gap:5px}button{padding:8px;font-size:12px}#help{display:none}#brand{left:10px;top:10px;padding:11px 12px}#status{left:10px;bottom:10px;padding:9px 11px;max-width:calc(100vw - 185px)}#status p{font-size:11px}h1{font-size:17px}}
+</style>
+</head>
+<body>
+<div id="scene"></div>
+<div id="brand" class="panel"><h1>San Patricio del Chañar · 3D</h1><p>Un recorrido virtual en construcción · Neuquén, Patagonia</p></div>
+<div id="tools" class="panel">
+<button class="primary" id="walk">🚶 Entrar a caminar</button>
+<button id="overview">🌎 Vista del pueblo</button>
+<button id="reset">⌖ Volver al centro</button>
+<button id="buildings">🏘️ Edificios: mostrar</button>
+<button id="roads">🛣️ Calles: mostrar</button>
+<button id="reload">↻ Cargar datos del mapa</button>
+</div>
+<div id="status" class="panel"><strong id="statusTitle">Preparando el recorrido…</strong><p id="statusText">Se dibujará el área urbana con datos cartográficos abiertos. La precisión depende de la cobertura de OpenStreetMap.</p></div>
+<div id="help" class="panel"><strong>Cómo recorrer</strong><p>W A S D o flechas: caminar<br>Mouse: mirar alrededor<br>ESC: soltar el mouse<br>Vista del pueblo: volver a mirar desde arriba</p><p class="small" style="margin-top:8px">Requiere internet para cargar la biblioteca 3D y los datos del mapa.</p></div>
+<div id="crosshair"></div>
+<div id="loading"><div class="card"><h2>San Patricio del Chañar</h2><p>Construyendo el primer escenario 3D…</p><p class="small" style="margin-top:14px">Si no aparece el mundo, revisá que la conexión permita cargar recursos externos.</p></div></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const CENTER={lat:-38.63126,lon:-68.29715};
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9cb7c3);scene.fog=new THREE.Fog(0x9cb7c3,650,2200);
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,5000);camera.position.set(0,32,70);
+const renderer=new THREE.WebGLRenderer({antialias:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=false;renderer.outputColorSpace=THREE.SRGBColorSpace;document.querySelector('#scene').appendChild(renderer.domElement);
+scene.add(new THREE.HemisphereLight(0xe5f0f0,0x645b45,2));
+const sun=new THREE.DirectionalLight(0xffe4b4,2.1);sun.position.set(-180,260,120);scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(2600,2600),new THREE.MeshLambertMaterial({color:0xb9ad8d}));ground.rotation.x=-Math.PI/2;ground.position.y=-.3;scene.add(ground);
+const grid=new THREE.GridHelper(2600,65,0x9a947c,0xa49b82);grid.position.y=-.2;grid.material.transparent=true;grid.material.opacity=.17;scene.add(grid);
+const town=new THREE.Group();scene.add(town);const roadGroup=new THREE.Group();const buildingGroup=new THREE.Group();town.add(roadGroup,buildingGroup);
+let roadsVisible=true,buildingsVisible=true,walking=false,loaded=false, yaw=0,pitch=0,keys={};let player={x:0,z:0};let targetYaw=0;
+const materials={road:new THREE.MeshLambertMaterial({color:0x6d716b}),building:new THREE.MeshLambertMaterial({color:0xd7c9aa}),roof:new THREE.MeshLambertMaterial({color:0x9a6b50}),green:new THREE.MeshLambertMaterial({color:0x718b5d})};
+function setStatus(a,b){document.querySelector('#statusTitle').textContent=a;document.querySelector('#statusText').textContent=b}
+function localXY(lat,lon){const x=(lon-CENTER.lon)*111320*Math.cos(CENTER.lat*Math.PI/180);const z=-(lat-CENTER.lat)*111320;return{x,z}}
+function clearGroup(g){while(g.children.length){const o=g.children.pop();if(o.geometry)o.geometry.dispose();if(o.parent)o.parent.remove(o)}}
+function lineFromCoords(coords,mat,width){if(!coords||coords.length<2)return;const pts=coords.map(c=>{const p=localXY(c[1],c[0]);return new THREE.Vector3(p.x,.12,p.z)});const geo=new THREE.BufferGeometry().setFromPoints(pts);const mesh=new THREE.Line(geo,new THREE.LineBasicMaterial({color:mat,linewidth:width}));roadGroup.add(mesh)}
+function addRoad(coords,kind){if(!coords||coords.length<2)return;const p=coords.map(c=>localXY(c[1],c[0]));const pts=p.map(v=>new THREE.Vector3(v.x,.15,v.z));const geo=new THREE.BufferGeometry().setFromPoints(pts);let color=kind==='primary'||kind==='trunk'?0x9a8a6d:kind==='residential'||kind==='secondary'?0x777b75:0x8c8c7c;roadGroup.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color})))}
+function addBuilding(el){let coords=[];if(el.geometry)coords=el.geometry.map(n=>[n.lon,n.lat]);else if(el.center)coords=[[el.center.lon,el.center.lat]];if(coords.length<3){if(el.center){const p=localXY(el.center.lat,el.center.lon);const w=6+((el.id||1)%8),d=5+((el.id||2)%6);const m=new THREE.Mesh(new THREE.BoxGeometry(w,3+((el.id||3)%3),d),materials.building);m.position.set(p.x,2,p.z);buildingGroup.add(m)}return}
+const pts=coords.map(c=>localXY(c[1],c[0]));let cx=0,cz=0;pts.forEach(p=>{cx+=p.x;cz+=p.z});cx/=pts.length;cz/=pts.length;
+const shape=new THREE.Shape();shape.moveTo(pts[0].x-cx,pts[0].z-cz);for(let i=1;i<pts.length;i++)shape.lineTo(pts[i].x-cx,pts[i].z-cz);shape.closePath();
+const hRaw=parseFloat((el.tags||{}).height)||((el.tags||{}).building==='apartments'?10:3.5+((el.id||0)%4)*.45);const h=Math.max(2.5,Math.min(hRaw,28));
+try{const geo=new THREE.ExtrudeGeometry(shape,{depth:h,bevelEnabled:false});geo.rotateX(-Math.PI/2);const mesh=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:(el.tags&&el.tags.building==='commercial')?0xc9bda5:([0xd6c7a5,0xc9bba2,0xd8d0bb,0xbba78e][(el.id||0)%4])}));mesh.position.set(cx,0,cz);buildingGroup.add(mesh)}catch(e){}
+}
+async function loadMap(){setStatus('Buscando cartografía abierta…','Consultando calles y huellas de edificios de la zona céntrica. Puede tardar unos segundos.');const query='[out:json][timeout:35];(way["building"](around:1600,'+CENTER.lat+','+CENTER.lon+');way["highway"](around:1900,'+CENTER.lat+','+CENTER.lon+'););out body geom;';const endpoints=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];let data=null;for(const url of endpoints){try{const res=await fetch(url,{method:'POST',body:query,headers:{'Content-Type':'text/plain;charset=UTF-8'}});if(!res.ok)throw new Error('HTTP '+res.status);data=await res.json();break}catch(e){console.warn('Overpass endpoint',url,e)}}if(!data){setStatus('No se pudo cargar el mapa','La fuente cartográfica puede estar ocupada o la conexión bloquearla. El escenario base sigue disponible; probá nuevamente más tarde.');return}
+clearGroup(roadGroup);clearGroup(buildingGroup);let bc=0,rc=0;for(const el of data.elements||[]){if(el.tags&&el.tags.building){addBuilding(el);bc++}else if(el.tags&&el.tags.highway&&el.geometry){addRoad(el.geometry,el.tags.highway);rc++}}loaded=true;buildingGroup.visible=buildingsVisible;roadGroup.visible=roadsVisible;setStatus('Mapa cargado · '+bc+' edificios · '+rc+' calles','Datos abiertos de OpenStreetMap. Las alturas que no figuran en la cartografía se representan de forma aproximada; el terreno de esta primera versión es plano.');}
+function setOverview(){walking=false;document.querySelector('#crosshair').style.display='none';camera.up.set(0,1,0);camera.position.set(0,260,330);camera.lookAt(0,0,0);pitch=-.55;yaw=0;document.exitPointerLock?.();document.querySelector('#walk').textContent='🚶 Entrar a caminar'}
+function enterWalk(){walking=true;player={x:camera.position.x,z:camera.position.z};yaw=0;pitch=-.12;camera.position.set(player.x,2.1,player.z);camera.rotation.order='YXZ';camera.rotation.set(pitch,yaw,0);document.querySelector('#crosshair').style.display='block';renderer.domElement.requestPointerLock?.();document.querySelector('#walk').textContent='✓ Modo caminar activo';setStatus('Estás en el recorrido','Usá W A S D o las flechas para desplazarte. Mové el mouse para mirar; ESC libera el cursor.')}
+document.querySelector('#walk').addEventListener('click',()=>{if(!walking)enterWalk();else renderer.domElement.requestPointerLock?.()});
+document.querySelector('#overview').addEventListener('click',setOverview);
+document.querySelector('#reset').addEventListener('click',()=>{player={x:0,z:0};if(walking){camera.position.set(0,2.1,0)}else setOverview();setStatus('Centro del pueblo','Punto de referencia aproximado del casco urbano de San Patricio del Chañar.')});
+document.querySelector('#buildings').addEventListener('click',()=>{buildingsVisible=!buildingsVisible;buildingGroup.visible=buildingsVisible;document.querySelector('#buildings').textContent=buildingsVisible?'🏘️ Edificios: mostrar':'🏘️ Edificios: ocultar'});
+document.querySelector('#roads').addEventListener('click',()=>{roadsVisible=!roadsVisible;roadGroup.visible=roadsVisible;document.querySelector('#roads').textContent=roadsVisible?'🛣️ Calles: mostrar':'🛣️ Calles: ocultar'});
+document.querySelector('#reload').addEventListener('click',loadMap);
+addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault()});
+addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+addEventListener('mousemove',e=>{if(document.pointerLockElement===renderer.domElement&&walking){yaw-=e.movementX*.0022;pitch-=e.movementY*.0018;pitch=Math.max(-1.35,Math.min(1.25,pitch));camera.rotation.set(pitch,yaw,0)}});
+addEventListener('pointerlockchange',()=>{if(document.pointerLockElement!==renderer.domElement&&walking){document.querySelector('#walk').textContent='🚶 Volver a caminar'}});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+let last=performance.now();function animate(now){requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.05);last=now;if(walking){const speed=(keys.shift?23:11)*dt;const f=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);const s=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);const dx=Math.sin(yaw)*f+Math.cos(yaw)*s;const dz=-Math.cos(yaw)*f+Math.sin(yaw)*s;const norm=Math.hypot(dx,dz)||1;player.x+=dx/norm*speed;player.z+=dz/norm*speed;camera.position.set(player.x,2.1,player.z);camera.rotation.set(pitch,yaw,0)}renderer.render(scene,camera)}
+setOverview();requestAnimationFrame(animate);document.querySelector('#loading').classList.add('hidden');loadMap();
+</script>
+</body>
+</html>
