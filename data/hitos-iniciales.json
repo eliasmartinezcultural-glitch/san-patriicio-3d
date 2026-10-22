@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Municipalidad de San Patricio del Chañar",
+    "category": "municipalidad",
+    "lat": -38.62619,
+    "lon": -68.29793,
+    "confidence": "coordenada publicada en fuente cartográfica secundaria basada en OpenStreetMap; pendiente de contraste en campo",
+    "source": "https://mapcarta.com/es/W218470639",
+    "notes": "La ubicación del edificio municipal se usa como hito de referencia, no como levantamiento catastral."
+  },
+  {
+    "name": "Hospital de Área Dra. Alicia Cruz",
+    "category": "salud",
+    "lat": -38.62957,
+    "lon": -68.29623,
+    "confidence": "coordenada publicada en fuente cartográfica secundaria basada en OpenStreetMap; pendiente de contraste en campo",
+    "source": "https://mapcarta.com/es/W922791579",
+    "notes": "La fuente cartográfica lo ubica sobre Avenida Ingeniero Roberto Gasparri Norte."
+  },
+  {
+    "name": "Plaza de los Derechos de las Infancias",
+    "category": "plaza",
+    "lat": -38.63272,
+    "lon": -68.29632,
+    "confidence": "coordenada publicada en OpenStreetMap; la denominación se contrasta con la Ordenanza 1203/20; pendiente de contraste en campo",
+    "source": "https://mapcarta.com/W120609368",
+    "name_reference": "https://boletinoficial.neuquen.gov.ar/BoletinDetalle?Id=23",
+    "notes": "La Ordenanza 1203/20 dispone la denominación Plaza de los Derechos de las Infancias. Confirmar cartelería actual en el lugar."
+  }
+]
