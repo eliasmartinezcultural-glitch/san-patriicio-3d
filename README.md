@@ -13,6 +13,7 @@ Proyecto abierto para construir, por etapas, un recorrido 3D del casco urbano de
 - Permite vista general, modo caminar con WASD/flechas y mouse, y mostrar/ocultar capas.
 - La entrada al modo caminar ahora comienza en el punto de referencia central, no en la posición de la cámara aérea.
 - Interfaz en español y adaptación básica a pantallas pequeñas.
+- Límites de renderizado para cuidar equipos lentos: hasta 1.800 edificios, 1.400 trazas viales y 220 lugares cartografiados; escala de píxeles limitada.
 
 ## Cómo probarlo
 
@@ -64,6 +65,7 @@ Para publicarlo, entrá en **Settings → Pages**, elegí **Deploy from a branch
 ## Fuentes y atribución
 
 - Catálogo inicial de hitos y nivel de confianza: [data/hitos-iniciales.json](data/hitos-iniciales.json).
+- Método, fuentes y límites de precisión: [docs/FUENTES-Y-PRECISION.md](docs/FUENTES-Y-PRECISION.md).
 - Municipalidad (coordenada publicada): https://mapcarta.com/es/W218470639
 - Hospital de Área Dra. Alicia Cruz (coordenada publicada): https://mapcarta.com/es/W922791579
 - Plaza de los Derechos de las Infancias (coordenada publicada): https://mapcarta.com/W120609368
